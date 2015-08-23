@@ -1,0 +1,13 @@
+NVM_V3 
+3
+canvasimg1440363999917.jpg 1536 1 0 0 0 0 0 0 0 0
+canvasimg1440364025669.jpg 1536 1 0 0 0 0 0 0 0 0
+canvasimg1440364292204.jpg 1536 1 0 0 0 0 0 0 0 0
+0
+
+0
+
+#the last part of NVM file points to the PLY files
+#the first number is the number of associated PLY files
+#each following number gives a model-index that has PLY
+0

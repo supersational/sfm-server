@@ -1,0 +1,8 @@
+NVM_V3 
+
+0
+
+#the last part of NVM file points to the PLY files
+#the first number is the number of associated PLY files
+#each following number gives a model-index that has PLY
+0
