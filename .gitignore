@@ -1,2 +1,6 @@
-/node_modules/*
-/uploads/*
+*.sift
+*.jpg
+*.mat
+*.nvm
+node_modules/*
+uploads/*
