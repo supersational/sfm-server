@@ -44,9 +44,7 @@ function readFile(file, camera_name) {
                 if (file_name == camera_name) {
                     console.log("setting camera : " + camera_name)
                     setCamera(newCam);
-                    setInterval(function () {
-                        setCamera(newCam);
-                    }, 2000);
+                    latestCamera = newCam;
                     camera_name = false; // for not setting to avgpos later..
                     col = "FF99CC";
                 }
@@ -93,7 +91,7 @@ function readFile(file, camera_name) {
         var pointSize = 4;
         var material = new THREE.PointCloudMaterial( { size: pointSize, vertexColors: THREE.VertexColors }  );
         pointcloud = new THREE.PointCloud( pointcloud_geometry, material );
-        scene.add(pointcloud);
+        model.add(pointcloud);
         //pointcloud.visible = false;
     }
 

@@ -1,6 +1,8 @@
 // standard global variables
 var scene, camera, renderer;
 
+var arrows, model;
+
 var cameraOffset = {
     x: 0,
     y: 150,
@@ -86,6 +88,7 @@ function requestFullscreen(element) {
         info.innerHTML = "not supported";
     }
 }
+
 
 // video.style.visibility = 'hidden';
 var landscape = false;
@@ -260,6 +263,8 @@ function init() {
     scene = new THREE.Scene();
     arrows = new THREE.Object3D();
     scene.add(arrows);
+    model = new THREE.Object3D();
+    scene.add(model);
     // CAMERA
     var SCREEN_WIDTH = window.innerWidth,
         SCREEN_HEIGHT = window.innerHeight;
@@ -355,6 +360,15 @@ function animate() {
     update();
 }
 
+var latestCamera = false;
+document.addEventListener("keypress", function(e) {
+    if (e.which == 67 || e.which == 99)  {
+        if (latestCamera) setCamera(latestCamera);
+        else console.log("no latestCamera");
+    } else {
+        console.log(e.which + " pressed");
+    }
+});
 function update() {
     // camera.position.set(cameraOffset.x, cameraOffset.y, cameraOffset.z);
     // camera.lookAt(scene.position);
@@ -454,6 +468,8 @@ function getNVM(name, camera_name) {
                 if (xmlhttp.responseText.slice(0,6)=="NVM_V3") {
                     console.log("getNVM, name = " + name + ", camera_name = " + camera_name)
                     console.log("recieved (valid) NVM with camera! ");
+                    arrows.children = [];
+                    model.children = [];
                     readFile(xmlhttp.responseText, camera_name);
                 } else {
                     console.log("getNVM sent " + name);
