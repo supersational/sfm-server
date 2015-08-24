@@ -47,7 +47,7 @@ var fullscreen_compatibility = (function() {
 
         return getUserMedia.call(window.navigator, options, success, error);
     }
-    var container, video, canvas, s_canvas, ctx, s_ctx, canvas_size, resizecallback;
+    var container, video, canvas, s_canvas, ctx, s_ctx, size, resizecallback;
     
     var createVideoCanvas = function( options ) {
         if (options.camera_direction && (options.camera_direction!="user" && options.camera_direction!="environment" )) {
@@ -76,7 +76,7 @@ var fullscreen_compatibility = (function() {
         
 
 
-        canvas_size = {
+        size = {
             w:window.innerWidth,
             h:window.innerHeight,
             offsetW:0,
@@ -154,7 +154,7 @@ var fullscreen_compatibility = (function() {
                 ch = window.innerHeight,
                 vw = video.videoWidth,
                 vh = video.videoHeight;
-            if (vw != canvas_size.video_prevw || vh != canvas_size.video_prevh) alert("video size changed to w/h " + vw + ", " + vh + "(prev: " + canvas_size.video_prevw +", "+ canvas_size.video_prevh + ")");
+            if (vw != size.video_prevw || vh != size.video_prevh) alert("video size changed to w/h " + vw + ", " + vh + "(prev: " + size.video_prevw +", "+ size.video_prevh + ")");
             canvas.setAttribute('width', cw);
             canvas.setAttribute('height', ch);
 
@@ -162,23 +162,23 @@ var fullscreen_compatibility = (function() {
 
                 
             if (videoAspect > cw / ch) {
-                canvas_size.w = Math.round(ch * videoAspect);
-                canvas_size.h = Math.round(ch);
-                canvas_size.offsetW = (cw - canvas_size.w) / 2;
-                canvas_size.offsetH = 0;
+                size.w = Math.round(ch * videoAspect);
+                size.h = Math.round(ch);
+                size.offsetW = (cw - size.w) / 2;
+                size.offsetH = 0;
             } else { // side boxes
-                canvas_size.w = Math.round(ch * videoAspect);
-                canvas_size.h = Math.round(ch);
-                canvas_size.offsetW = (cw - canvas_size.w) / 2;
-                canvas_size.offsetH = 0;
+                size.w = Math.round(ch * videoAspect);
+                size.h = Math.round(ch);
+                size.offsetW = (cw - size.w) / 2;
+                size.offsetH = 0;
             }
 
             // one canvas to match video size exactly so we can send full resolution
             // update: we no longer want to change this as it SHOULD remain invariant
             //s_canvas.width = vw;
             //s_canvas.height = vh;
-            // canvas_size.vw = vw;
-            // canvas_size.vh = vh;
+            // size.vw = vw;
+            // size.vh = vh;
 
             if (resizecallback) {resizecallback();}
         }
@@ -205,18 +205,18 @@ var fullscreen_compatibility = (function() {
                     }
                     s_canvas.width = Math.round(s_canvas.width);
                     s_canvas.height = Math.round(s_canvas.height);
-                    canvas_size.video_prevw = video.videoWidth;
-                    canvas_size.video_prevh = video.videoHeight;
-                    canvas_size.vw = s_canvas.width;
-                    canvas_size.vh = s_canvas.height;
+                    size.video_prevw = video.videoWidth;
+                    size.video_prevh = video.videoHeight;
+                    size.vw = s_canvas.width;
+                    size.vh = s_canvas.height;
                 } else {
                     alert( "videoWidth not set correctly" );
                     s_canvas.width = 640;
                     s_canvas.height = 480;
-                    canvas_size.video_prevw = 640;
-                    canvas_size.video_prevh = 480;
-                    canvas_size.vw = 640;
-                    canvas_size.vh = 480;
+                    size.video_prevw = 640;
+                    size.video_prevh = 480;
+                    size.vw = 640;
+                    size.vh = 480;
                 }
                 resizeScreen();
                 isStreaming = true;
@@ -242,7 +242,7 @@ var fullscreen_compatibility = (function() {
         }
         //ctx.fillStyle = '#'
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(video, canvas_size.offsetW, canvas_size.offsetH, canvas_size.w, canvas_size.h);
+        ctx.drawImage(video, size.offsetW, size.offsetH, size.w, size.h);
     }
 
     var s_drawStep = function() {
@@ -289,7 +289,7 @@ var fullscreen_compatibility = (function() {
         };
     }    
     var get_size = function() {
-        return canvas_size;
+        return size;
     }
     var set_resizecallback = function(callback) {
         resizecallback = callback;

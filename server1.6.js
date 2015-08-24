@@ -112,6 +112,7 @@ function set_models(new_models, options) {
 			//console.log(camList[cam_idx]);
 			var jpg = jpgs_lookup[camList[cam_idx].file_name];
 			if (jpg) {
+				jpg.model_index = {mod_idx:mod_idx, cam_idx:cam_idx};
 				if (options.file) jpg.model_file = options.file; // e.g. 51.nvm
 				if (jpg.used<3) {
 					jpg.used = 3;
@@ -165,16 +166,58 @@ function run_sfm(options) {
 				if (jpg_needs_camera.recentNum) { // only match with most recent N camaeras to save time
 					var d = new Date();
 			        var name = folder + 'pairs' + d.valueOf() +  '.txt';
-			        var contents = "";
-			        var i = 0, numAdded = 0;
-	       			while (numAdded<jpg_needs_camera.recentNum && i <= jpgs.length-1) {
-	       				var j = jpgs[jpgs.length-1-i];
-	       				if (j && j.file_name && j.file_name !== jpg_needs_camera.file_name) {
-	       					contents += jpg_needs_camera.file_name + " " + j.file_name + "\r\n";
-	       					numAdded++;
+			        var good_cameras=[];
+			        var bad_cameras =[];
+			        var i = 0;
+	       			while ((good_cameras.length<jpg_needs_camera.recentNum) && i <= jpgs.length-1) { // find most recent cameras
+	       				var j = jpgs[jpgs.length-1-i]; // get most recent jpg 
+	       				if (j && j.file_name && j.file_name !== jpg_needs_camera.file_name) { // if not same jpg as before
+	       					if (j.used > 2 
+		       					&& j.model_index.mod_idx in models 
+		       				    && j.model_index.cam_idx in models[j.model_index.mod_idx].cameras) { 
+	       				    	// check distance to other cameras
+	       						var cam = models[j.model_index.mod_idx].cameras[j.model_index.cam_idx];
+	       						console.log("position is " + cam.pos.x + ", " + cam.pos.y + ", " + cam.pos.z);
+	       						var minDist = 999999999999;
+	       						good_cameras.forEach(function(c) { // find minimum distance to all cameras we already have
+	       							if (c.pos) minDist = Math.min(minDist, Math.pow( Math.pow(c.pos.x-cam.pos.x,2) + Math.pow(c.pos.y-cam.pos.y,2) + Math.pow(c.pos.z-cam.pos.z,2), 0.5)); 
+	       						});
+	       						bad_cameras.forEach(function(c) { // find minimum distance to all cameras we already have
+	       							if (c.pos) minDist = Math.min(minDist, Math.pow( Math.pow(c.pos.x-cam.pos.x,2) + Math.pow(c.pos.y-cam.pos.y,2) + Math.pow(c.pos.z-cam.pos.z,2), 0.5)); 
+	       						});
+	       						console.log("minDist is " + minDist);
+	       						if (minDist > 2) { 
+	       							console.log("> 2 so adding to list");
+	       							good_cameras.push(cam);
+	       						} else {
+	       							console.log("< 2 so adding to list BUT as a 'bad camera'");
+	       							bad_cameras.push(cam);
+	       						}
+	       					} else {
+	       						console.log("camera wasn't used in the model so not even adding to 'bad cameras'")
+	       						console.log(JSON.stringify(j));
+	       					}
 	       				}
 	       				i++;
 	       			}
+	       			console.log("finished search with " + good_cameras.length + " good_cameras and "+ bad_cameras.length + " bad_cameras");
+	       			var numAdded = 0;
+			        var contents = "";
+			        good_cameras.forEach(function(c) {
+			        	if (c.file_name) {
+			        		contents += jpg_needs_camera.file_name + " " + c.file_name + "\r\n";
+			        		numAdded++
+			        	}
+			        });
+			        console.log(contents);
+			        if (numAdded<jpg_needs_camera.recentNum) { // if we still dont have enough
+			        	good_cameras.forEach(function(c) {
+				        	if (c.file_name && numAdded<jpg_needs_camera.recentNum) {
+				        		contents += jpg_needs_camera.file_name + " " + c.file_name + "\r\n";
+				        		numAdded++
+				        	}
+				        });
+			        }
 	       			console.log("PRESFM : " + numAdded + " pairs on list, writing to " + name);
 					fs.writeFileSync(name, contents);
 					options = ['sfm+pairs+resume',sfm.exists, sfm_filename, name]; // +subset could work here? 1.6

@@ -69,7 +69,21 @@
         var lev_colors;
         var fps = 0;
         var fps_three = 0;
-        var scene, camera, renderer, arrows, model;
+        var scene, camera, renderer;
+        var arrows, model, raycaster;
+
+        var mouse = new THREE.Vector2();
+
+        function onMouseMove( event ) {
+
+            // calculate mouse position in normalized device coordinates
+            // (-1 to +1) for both components
+
+            mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+            mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;     
+
+        }
+        window.addEventListener( 'mousemove', onMouseMove, false );
 
         function init() {
             
@@ -182,6 +196,8 @@
             camera.position.set(cameraOffset.x, cameraOffset.y, cameraOffset.z);
             camera.lookAt(scene.position);
 
+            raycaster = new THREE.Raycaster();
+
 
             // RENDERER
             var check_webgl = function() {
@@ -275,6 +291,9 @@
             if (e.which == 67 || e.which == 99)  {
                 if (latestCamera) setCamera(latestCamera);
                 else console.log("no latestCamera");
+            } else if (e.which == 114 || e.which == 82)  {
+                raycaster.params.PointCloud.threshold++;
+                console.log("new raycaster threshold = " + raycaster.params.PointCloud.threshold);
             } else {
                 console.log(e.which + " pressed");
             }
@@ -322,9 +341,45 @@
         function animate() {
             fs.requestAnimationFrame(animate);
             fps_three++;
+
+            if (model.children.length>0) {
+                raycaster.setFromCamera( mouse, camera );   
+
+                // calculate objects intersecting the picking ray
+                var intersections = raycaster.intersectObject( model.children[0]);
+
+                if ( intersections.length  > 0 ) console.log(intersections);
+                
+            }
+
             renderer.render(scene, camera);
         }
 
+        function raycast_points() {
+            var n = point_count;
+            var col, j, intersections, pos = new THREE.Vector2();
+            var colorArray = model.children[0].geometry.colorArray;
+            console.log(colorArray);
+            for(; i < n; ++i) {                    
+                if(point_status[i] == 1) {
+                    var j=i<<1;
+                    pos.x = (curr_xy[j]/size.vw)
+                    pos.y = curr_xy[j+1];
+
+
+                    raycaster.setFromCamera( mouse, camera );   
+                    var intersections = raycaster.intersectObjects( model.children);
+
+                    col = lev_colors[point_id[i]%6];//lev_colors[k % 6]
+                    colorArray[i]
+                    draw_circle(ctx, curr_xy[i<<1], curr_xy[(i<<1)+1], col);
+                } 
+            }
+        }
+
+        function screen_to_three(x, y) {
+            return {x:(x-size.offsetW)/window.innerWidth,y:(y-size.offsetH)/window.innerHeight};
+        }
 
 
         function prune_oflow_points(ctx) {
