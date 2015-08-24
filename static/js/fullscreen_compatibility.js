@@ -56,7 +56,7 @@ var fullscreen_compatibility = (function() {
         }
         // create containing elements
         container = document.createElement('div');
-        container.style.cssText = "height:100%; width:100%; overflow:hidden; z-index:1; background-color:#D6FFEB; ";
+        container.style.cssText = "height:100%; width:100%; overflow:hidden; z-index:1; ";
         document.body.appendChild(container);
 
         video = document.createElement("video");
