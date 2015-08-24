@@ -5,10 +5,7 @@
         <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
         <meta name="description" content="Lukas-Kanade Tracking">
         <title>LKTracker</title>
-        <!--link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Droid+Sans:regular,bold|Inconsolata|PT+Sans:400,700"-->
         <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-
-
     </head>
     <body>
         <style> 
@@ -19,10 +16,17 @@
             }
         </style>
         <script type="text/javascript" src="js/jsfeat.js"></script>
-
         <script type="text/javascript" src="js/fullscreen_compatibility.js"></script>
 
         <script type="text/javascript">
+
+        /* 
+        ---=== Libs from: ===---
+        JSFeat - http://inspirit.github.io/jsfeat/#opticalflowlk
+        VisualSFM - http://ccwu.me/vsfm/
+
+        ---==================---
+        */
 
         var URL_params = getURLparams();
         if (!URL_params.maxWidth && !URL_params.sc) {
@@ -84,7 +88,7 @@
                 if (prev_point_count != point_count && 0) {
                     console.log(prev_point_count,point_count);
                     console.log(point_status);  
-                    print_c_i(); 
+                    print_pointlist(); 
                 }
             
             }
@@ -93,7 +97,7 @@
         }
 
         function prune_oflow_points(ctx) {
-            // remove untradcked points and resize point array 
+            // remove untracked points and resize point array 
             var n = point_count;
             var i=0,j=0;
             var col;// = "#FF0000";
@@ -118,7 +122,7 @@
             ctx.closePath();
             ctx.fill();
         }
-        function print_c_i() {
+        function print_pointlist() {
             console.log(point_id);
         }
         function init() {
@@ -127,13 +131,13 @@
 
             var btn = document.createElement( 'button');
             btn.innerHTML = "FAST";
-            btn.style.cssText = 'position:absolute;margin-left:10px;margin-top:30px;padding:20px;z-index:10;';
+            btn.style.cssText = 'position:absolute;margin-left:10px;margin-top:30px;padding:20px;z-index:10;white-space:nowrap';
             container.appendChild( btn );
             btn.addEventListener( "click" , 
                 function() {
                     console.log("starting with " + point_count + " points : ");
                     train_pattern();
-                    print_c_i();
+                    print_pointlist();
                     var id_start = 0;
                     if (point_count>0) id_start = point_id[point_count-1]-point_count;
 
@@ -142,12 +146,12 @@
                             curr_xy[point_count<<1] = pattern_corners[lev][i].x;
                             curr_xy[(point_count<<1)+1] = pattern_corners[lev][i].y;
                             point_id[point_count] = point_count + id_start;
-                            if (point_count>=99) {console.log("total point count: " + point_count + " (maxed out early)"); print_c_i();return;}
+                            if (point_count>=99) {console.log("total point count: " + point_count + " (maxed out early)"); print_pointlist();return;}
                             point_count++;
                         }
                     }
                     console.log("total point count: " + point_count);
-                    print_c_i();
+                    print_pointlist();
                 }
             );
             setInterval( function () {
@@ -157,7 +161,7 @@
 
 
             var btn2 = document.createElement( 'button');
-            btn2.innerHTML = "FULL";
+            btn2.innerHTML = "FULL"; // fullscreen
             btn2.style.cssText = 'position:absolute;margin-left:10px;margin-top:100px;padding:20px;z-index:10;';
             container.appendChild( btn2 );
             btn2.addEventListener( "click" , function() { fs.requestFullscreen(container);} );
@@ -167,6 +171,7 @@
             container.appendChild(info);
 
             update_info = function() {
+                // change circle size (on canvas resize)
                 options_lk.circle_radius = Math.max(1,Math.floor(size.w/250));
 
                 info.innerHTML = "vid: " + size.vw + ", " + size.vh + "<br>" + 
@@ -184,13 +189,11 @@
                 fps = 0;
             }, fps_refreshrate);
 
-            // ---=== ORB ===---
+            // ---=== CANVAS DATA ===---
 
             img_u8 = new jsfeat.matrix_t(size.vw, size.vh, jsfeat.U8_t | jsfeat.C1_t);
             // after blur
             img_u8_smooth = new jsfeat.matrix_t(size.vw, size.vh, jsfeat.U8_t | jsfeat.C1_t);
-            // we wll limit to 500 strongest points
-            pattern_corners = [];
 
 
             // ---=== LKT ===---
@@ -207,6 +210,8 @@
             point_id = new Uint16Array(100);
             lev_colors = {0:'#FFFFFF',1:'#FF0000',2:'#00FF00',3:'#0000FF',4:'#FFFF00',5:'#222222'}
 
+            // we wll limit to 500 strongest points
+            pattern_corners = [];
             
 
             update_info()
