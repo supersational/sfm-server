@@ -87,7 +87,8 @@ function readFile(file, camera_name) {
 
     if (pointcloud_enabled && num_pointcloud>0) {
         pointcloud_geometry.colors = colors;
-        pointcloud_geometry.computeBoundingBox();
+        pointcloud_geometry.computeBoundingSphere();
+        console.log(pointcloud_geometry.boundingSphere)
         var pointSize = 4;
         var material = new THREE.PointCloudMaterial( { size: pointSize, vertexColors: THREE.VertexColors }  );
         pointcloud = new THREE.PointCloud( pointcloud_geometry, material );
