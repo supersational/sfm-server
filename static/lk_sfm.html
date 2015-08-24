@@ -45,7 +45,7 @@
 
 
         var fs = fullscreen_compatibility;
-        var size, container, canvas, ctx,  s_canvas, s_ctx, video;
+        var size, container, canvas, ctx,  s_canvas, s_ctx, video, info;
         fs.createVideoCanvas({camera_direction:"environment", sc:URL_params.sc, maxWidth: URL_params.maxWidth, 
 
             callback:function() { //callback when complete
@@ -75,9 +75,13 @@
             
             // ---=== GUI ===---
 
+            var btn_padding = 10;
+            var btn_spacing = 45;
+            var btn_top = 30;
+
             var btn = document.createElement( 'button');
             btn.innerHTML = "FAST";
-            btn.style.cssText = 'position:absolute;margin-left:10px;margin-top:30px;padding:20px;z-index:10;white-space:nowrap';
+            btn.style.cssText = 'position:absolute;margin-left:10px;margin-top:' + btn_top + 'px;padding:' + btn_padding + 'px;z-index:10;white-space:nowrap';
             container.appendChild( btn );
             btn.addEventListener( "click" , 
                 function() {
@@ -108,23 +112,36 @@
 
             var btn2 = document.createElement( 'button');
             btn2.innerHTML = "FULL"; // fullscreen
-            btn2.style.cssText = 'position:absolute;margin-left:10px;margin-top:100px;padding:20px;z-index:10;';
+            btn2.style.cssText = 'position:absolute;margin-left:10px;margin-top:' + (btn_top + btn_spacing) + 'px;padding:' + btn_padding + 'px;z-index:10;';
             container.appendChild( btn2 );
             btn2.addEventListener( "click" , function() { fs.requestFullscreen(container);} );
 
-            var info = document.createElement( 'p' );
+            var btn3 = document.createElement( 'button');
+            btn3.innerHTML = "PHOTO"; // take a screenshot & send to server
+            btn3.style.cssText = 'position:absolute;margin-left:10px;margin-top:' + (btn_top + 2 * btn_spacing) + 'px;padding:' + btn_padding + 'px;z-index:10;';
+            container.appendChild( btn3 );
+            btn3.addEventListener( "click" ,takeScreenShot );
+
+            info = document.createElement( 'p' );
             info.style.cssText = 'position:absolute;margin-left:80px;margin-top:10px;z-index:11;width:100px';
             container.appendChild(info);
 
-            update_info = function() {
+            resize_callback = function() {
                 // change circle size (on canvas resize)
                 options_lk.circle_radius = Math.max(1,Math.floor(size.w/250));
 
                 info.innerHTML = "vid: " + size.vw + ", " + size.vh + "<br>" + 
                                  "can: " + size.w + ", " + size.h + "<br>" + 
                                  "s_c: " + s_canvas.width + ", " + s_canvas.height  + "<br>" ;
+
+                renderer.setSize(window.innerWidth, window.innerHeight);
+
+                // update the camera
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+
             }
-            fs.set_resizecallback( update_info );
+            fs.set_resizecallback( resize_callback );
 
             var fps_info = document.createElement( 'p' );
             fps_info.style.cssText = 'position:absolute;margin-left:8px;margin-top:5px;z-index:11;width:100px';
@@ -248,10 +265,20 @@
             pattern_corners = [];
             
 
-            update_info()
+            resize_callback()
             tick();
             animate();
         }
+
+        var latestCamera = false;
+        document.addEventListener("keypress", function(e) {
+            if (e.which == 67 || e.which == 99)  {
+                if (latestCamera) setCamera(latestCamera);
+                else console.log("no latestCamera");
+            } else {
+                console.log(e.which + " pressed");
+            }
+        });
 
         function tick() {
             if (video.readyState === video.HAVE_ENOUGH_DATA) {
@@ -459,6 +486,152 @@
             } 
             return query_string;
         }
+
+        // ---=== SERVER IMAGE SENDING/RECIEVING .NVM's ===---
+
+
+        var uploads = [];
+
+        function takeScreenShot() {
+            // s_ctx.drawImage(video,0,0);
+            var dataURL = s_canvas.toDataURL("image/jpeg",1.0);
+            sendImage(dataURL);
+        }
+
+
+        function sendImage(dataURL) {
+             
+            console.log(uploads);
+
+            if (window.XMLHttpRequest) {
+                xmlhttp = new XMLHttpRequest();
+            }
+
+            var uploadid = uploads.length;
+            uploads[uploadid] = {
+                req: xmlhttp,
+                percent: 0,
+                size: dataURL.length,
+                done: false
+            };
+
+            var readyState = function(uploadid, xmlhttp) {
+                return function() {
+                    if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+                        info.innerHTML = "xmlhttp.readyState = " + xmlhttp.readyState + ", xmlhttp.status = " + xmlhttp.status + ", responseText = " + xmlhttp.responseText;
+                        var res = JSON.parse(xmlhttp.responseText);
+                        if (res.success) {
+                            info.innerHTML += "<br> SUCCESS!";
+                            if (res.name) {
+                                info.innerHTML += "<br> name : " + res.name;
+
+                                var callback = function(success, found, result) {
+                                    // console.log("name : " + name + " = res.name? : " + res.name);
+                                    if (success && found && result.used == 3) {
+                                        console.log("success!!!!" + result);
+                                        getNVM(res.name, res.name);
+                                    } else {
+                                        setTimeout(function() {
+                                            getJPG(res.name, callback);
+                                        }, 250); // poll the server until the JPG has been processed
+                                    }
+                                
+                                } 
+                                
+                                getJPG(res.name, callback(res.name));
+                            }
+
+                        }
+                        else {info.innerHTML += "<br> NO SUCCESS :(";}
+                        uploads[uploadid].done = true;
+                    }
+                }
+            }
+            xmlhttp.onreadystatechange = readyState(uploadid, xmlhttp); // curry the functions so they access the correct upload[uploadid]'s'
+            var progress = function(uploadid) {
+                return function(evt) {
+                    if (evt.loaded) {
+                        var percentComplete = Math.min(100, (evt.loaded / evt.total) * 100);
+                        uploads[uploadid].percent = percentComplete;
+                        //console.log(percentComplete);
+                    }
+                }
+            }
+            xmlhttp.onprogress = progress(uploadid); 
+            xmlhttp.open("POST", "../dataURL", true);
+            xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+            xmlhttp.send(dataURL);
+        }
+
+
+        function getNVM(name, camera_name) {
+            if (window.XMLHttpRequest) {
+                xmlhttp = new XMLHttpRequest();
+            }
+            var ready = function(name, camera_name) {
+                console.log("getNVM, function,  name = " + name + ", camera_name = " + camera_name)
+
+                return function() {
+                    if (xmlhttp.readyState==4 && xmlhttp.status==200) {
+                        //info.innerHTML=xmlhttp.responseText;
+                        if (xmlhttp.responseText.slice(0,6)=="NVM_V3") {
+                            console.log("getNVM, name = " + name + ", camera_name = " + camera_name)
+                            console.log("recieved (valid) NVM with camera! ");
+                            arrows.children = [];
+                            model.children = [];
+                            readFile(xmlhttp.responseText, camera_name);
+                        } else {
+                            console.log("getNVM sent " + name);
+                            console.log("NVM    server responded " + xmlhttp.responseText);
+                        }
+
+                    }
+                }
+            }
+            xmlhttp.onreadystatechange = ready(name, camera_name);
+
+            var path = "../latestNVM.nvm";
+            if (name) {
+                path = "../model?cam=" + name;
+            } 
+            console.log(path);
+            xmlhttp.open("GET",path,true);
+            xmlhttp.send();
+        }
+
+        function getJPG(name, callback) {
+            if (window.XMLHttpRequest) {
+                xmlhttp = new XMLHttpRequest();
+            }
+            xmlhttp.onreadystatechange=ready(name);
+            function ready(name) {
+                return function() {
+                    if (xmlhttp.readyState==4 && xmlhttp.status==200) {
+                        //info.innerHTML=xmlhttp.responseText;
+                        var res = JSON.parse(xmlhttp.responseText);
+                        if (callback) {
+                            callback(res.success, res.found, res.result);
+                        }
+                        if (res.success) {
+                            if (res.found) {
+                                //console.log("getJPG returned " + JSON.stringify(res.result));
+                                //console.log("getJPG " + name + " has used  = " + res.result.used );
+                            } else {
+                                console.log("getJPG " + name + " was not found ");
+                            }
+                        } else {
+                            console.log("getJPG failed " + res);
+                        }
+
+                    }
+                }
+            }
+            var path = "../jpgs_lookup?jpg=" + name;
+            
+            xmlhttp.open("GET",path,true);
+            xmlhttp.send();
+        }
+
         
         </script>
     </body>

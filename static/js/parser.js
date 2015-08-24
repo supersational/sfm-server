@@ -83,7 +83,7 @@ function readFile(file, camera_name) {
         i++;
     }
     cameras.sort(function(a,b) { return a.timestamp - b.timestamp;});
-    console.log(cameras)
+    //console.log(cameras)
 
     if (pointcloud_enabled && num_pointcloud>0) {
         pointcloud_geometry.colors = colors;
@@ -154,8 +154,8 @@ function setCamera(cam) {
     //     }
     // }
     console.log("scr   : " + scr.width + ", " + scr.height);
-    console.log("canvas: " + canvas_inner.w + ", " + canvas_inner.h);
-    camera.setLens(cam.focal_length,screenshot_canvas.height); 
+    console.log("canvas: " + size.vw + ", " + size.vh);
+    camera.setLens(cam.focal_length,size.vh); 
     //camera.setLens(scr.height*cam.focal_length/canvas_inner.h,canvas_inner.h); 
     //camera.setLens(scr.width*cam.focal_length/canvas_inner.w,scr.width); 
 
