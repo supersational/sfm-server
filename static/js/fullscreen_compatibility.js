@@ -96,7 +96,6 @@ var fullscreen_compatibility = (function() {
         else doThingsWithSources(null); // only supported in chrome as of 24/8/2015
 
         function doThingsWithSources (media_sources) {
-            console.log("doingthingswithsources")
             var vid_options = [
                             {minWidth: 320}, // for maximum resolution (chrome)
                             {minWidth: 640},
@@ -110,7 +109,6 @@ var fullscreen_compatibility = (function() {
                 for (var i = 0; i < media_sources.length; i++) {
                     var m_s = media_sources[i];
                     if (m_s.kind=="video") {
-                        console.log(m_s);
                         if (m_s.facing==options.camera_direction) id = m_s.id;
                     }
                 }
@@ -124,7 +122,6 @@ var fullscreen_compatibility = (function() {
                 }
             }
             if (navigator.getUserMedia) {
-                console.log("getUserMedia")
                 // Request access to video only
                 navigator.getUserMedia({
                         video: {
@@ -140,7 +137,6 @@ var fullscreen_compatibility = (function() {
 
                         // Every 33 milliseconds copy the video image to the canvas
                         //setInterval(drawStep, 33);
-                        console.log(stream);
                     },
                     function(error) {
                         alert('Something went wrong. (error code ' + error + ')');

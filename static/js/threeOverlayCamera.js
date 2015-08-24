@@ -285,7 +285,7 @@ function init() {
                 return false;
             }
         }
-        // RENDERER
+    // RENDERER
     if (check_webgl())
         renderer = new THREE.WebGLRenderer({
             antialias: true,
