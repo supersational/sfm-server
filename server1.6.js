@@ -186,7 +186,7 @@ function run_sfm(options) {
 	       							if (c.pos) minDist = Math.min(minDist, Math.pow( Math.pow(c.pos.x-cam.pos.x,2) + Math.pow(c.pos.y-cam.pos.y,2) + Math.pow(c.pos.z-cam.pos.z,2), 0.5)); 
 	       						});
 	       						console.log("minDist is " + minDist);
-	       						if (minDist > 2) { 
+	       						if (minDist > 1) { // TODO : adapt dist to different scenarios, include rotations? 
 	       							console.log("> 2 so adding to list");
 	       							good_cameras.push(cam);
 	       						} else {

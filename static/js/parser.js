@@ -108,6 +108,8 @@ function readFile(file, camera_name) {
         camera.lookAt(avgpos);
         controls.target.copy(avgpos);
     }
+
+    return cameras;
 }
 
 function createArrow(p, q, col) {
