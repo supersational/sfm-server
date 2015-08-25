@@ -106,19 +106,20 @@
                     train_pattern();
                     print_pointlist();
                     var id_start = 0;
-                    if (point_count>0) id_start = point_id[point_count-1]-point_count;
+                    if (point_count>0) id_start = point_id[point_count-1]-point_count+1;
 
                     for(lev = 0; lev < options_orb.num_train_levels; ++lev) {
                         for(i = 0; i < corners_num[lev]; ++i) {
                             curr_xy[point_count<<1] = pattern_corners[lev][i].x;
                             curr_xy[(point_count<<1)+1] = pattern_corners[lev][i].y;
                             point_id[point_count] = point_count + id_start;
-                            if (point_count>=99) {console.log("total point count: " + point_count + " (maxed out early)"); print_pointlist();return;}
+                            if (point_count>=99) {console.log("total point count: " + point_count + " (maxed out early)"); print_pointlist();raycast_points(true);return;}
                             point_count++;
                         }
                     }
                     console.log("total point count: " + point_count);
                     print_pointlist();
+                    raycast_points(true);
                 }
             );
             setInterval( function () {
@@ -278,6 +279,7 @@
             prev_xy = new Float32Array(100*2);
             curr_xy = new Float32Array(100*2);
             point_id = new Uint16Array(100);
+
             lev_colors = ['#FFFFFF','#FF0000','#00FF00','#0000FF','#FFFF00','#222222'];
             lev_colors_rgb = [];
             lev_colors.forEach(function(c, idx) {
@@ -314,6 +316,8 @@
             } else if (e.which == 114 || e.which == 82)  {
                 raycaster.params.PointCloud.threshold++;
                 console.log("new raycaster threshold = " + raycaster.params.PointCloud.threshold);
+            }  else if (e.which == 83 || e.which == 115)  {
+                raycast_points(true)
             }  else if (e.which == 116 || e.which == 84)  {
                 raycast_points();
                 
@@ -354,7 +358,8 @@
                     console.log(point_status);  
                     print_pointlist(); 
                 }
-            
+                
+                draw_lines();
             }
             fs.requestAnimationFrame(tick);
 
@@ -378,7 +383,13 @@
             renderer.render(scene, camera);
         }
 
-        function raycast_points() {
+        var points_3d = [];
+        function raycast_points(serious) {
+
+            if (serious) {
+                raycaster.params.PointCloud.threshold = 9;
+                setCamera(cameras[cameras.length-1]);
+            }
             var n = point_count;
             var j, intersections, pos = new THREE.Vector2();
             if (!model.children[0].geometry.colors) {console.log("no pointcloud.. ");return;}
@@ -387,25 +398,85 @@
             for(var i = 0; i < n; ++i) {                    
                 if(point_status[i] == 1) {
                     var j=i<<1;
-                    pos.x =  ((curr_xy[j] /size.vw)-0.5)*(1-size.offsetW*2/window.innerWidth )*2;
+                    pos.x =  ((curr_xy[j]  /size.vw)-0.5)*(1-size.offsetW*2/window.innerWidth )*2;
                     pos.y = -((curr_xy[j+1]/size.vh)-0.5)*(1-size.offsetH*2/window.innerHeight)*2;
-                    console.log(curr_xy[j],pos.x,pos.y,curr_xy[j+1]);
+                    //console.log(curr_xy[j],pos.x,pos.y,curr_xy[j+1]);
                     draw_circle(ctx, (pos.x+1)*size.vw/2, (-pos.y*size.vh+1)/2, lev_colors[point_id[i]%6]);
 
                     raycaster.setFromCamera( pos, camera );   
                     var intersections = raycaster.intersectObjects( model.children);
                     if (intersections.length>0) {
+                        if (serious) {
+                            var intersect_pos = new THREE.Vector3(0,0,0);
+                            var numGood = 0;
+                            intersections.forEach(function(intersection, idx) {
+                                intersect_pos.add(intersection.point);
+                                numGood++;
+                            });
+                            if (numGood>0) {
+                                intersect_pos.divideScalar(numGood);
+                                points_3d.push({id:point_id[i],pos:model.children[0].geometry.vertices[intersections[0].index]});//intersect_pos});
+                            }
+                            console.log(intersect_pos);
+
+                        } 
+                        var minDist = 50;
+                        var minIdx = -1;
                         var col = lev_colors_rgb[point_id[i]%6];//lev_colors[k % 6]
-                        colorArray[intersections[0].index].r = col.r;
-                        colorArray[intersections[0].index].b = col.b;
-                        colorArray[intersections[0].index].g = col.g;
-                        console.log("changed color to", col)
+                        intersections.forEach(function(i, idx) {
+                            minIdx = idx;
+                            colorArray[intersections[idx].index].r = col.r;
+                            colorArray[intersections[idx].index].b = col.b;
+                            colorArray[intersections[idx].index].g = col.g;
+                        });
+                        
                     }
                 } 
             }
+            console.log(points_3d)
+            points_3d.forEach(function(e){console.log(e.pos)});
             model.children[0].geometry.colorsNeedUpdate = true;
         }
 
+        function draw_lines() {
+            var j = 0;
+            var x1, y1, x2, y2, v = new THREE.Vector3();
+            var numDrawn = 0;
+
+            var threeToCanvasScale = {
+                w: 0.5*size.w*(1-size.offsetW*2/window.innerWidth ),
+                h: 0.5*size.h*(1-size.offsetH*2/window.innerHeight)
+            };
+            for(var i = 0; i < points_3d.length; i++) {
+                while (1) {
+                    if ( j>=point_count || point_id[j] == points_3d[i].id) break;
+                    if (point_id[j]>points_3d[i].id) {j=9999; break;}
+                    j++;
+                }
+                if ((j>=point_count)) {
+                    points_3d.splice(i,1);
+                    i--;
+                    continue;
+                }
+                numDrawn++;
+                x1 = curr_xy[j<<1] * scale_w + size.offsetW;
+                y1 = curr_xy[(j<<1)+1] * scale_h + size.offsetH;
+                v.copy(points_3d[i].pos);
+                v.project(camera);
+                // x2 = ((v.x+1)*0.5)*(size.w)+size.offsetW;
+                // y2 = ((-v.y+1)*0.5)*(size.h)+size.offsetH;
+                x2 = (v.x+1)*threeToCanvasScale.w+size.offsetW;
+                y2 = (-v.y+1)*threeToCanvasScale.h+size.offsetH;
+
+                ctx.strokeStyle = lev_colors_rgb[point_id[j]%6];
+                ctx.beginPath();
+                ctx.moveTo(x1,y1);
+                ctx.lineTo(x2,y2);
+                ctx.stroke();
+                j = 0;
+            }
+            if (numDrawn>0) console.log("numDrawn" + numDrawn);
+        }
 
 
         function prune_oflow_points(ctx) {
@@ -435,7 +506,7 @@
             ctx.fill();
         }
         function print_pointlist() {
-            console.log(point_id);
+            console.log(point_id.subarray(0,point_count));
         }
 
         var img_u8, img_u8_smooth, corners_num = [];

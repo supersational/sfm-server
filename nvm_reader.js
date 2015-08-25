@@ -87,7 +87,7 @@ function read (options) {
 	    	// finish off the last model
 	    	log( "done with reading " + file.name);
 	    	//console.log(line)
-	    	var model = {cameras:cameras, pointcloud:pointcloud, file: file.name, reduced: options.reduce}
+	    	var model = {cameras:cameras, pointcloud:pointcloud, pointcloud_num:pointcloud_num, file: file.name, reduced: options.reduce}
 	    	models.push(model);
 	    	if (options.camera_dict) {
 	    		for (var i = 0; i < cameras.length ; i++) {
@@ -99,6 +99,7 @@ function read (options) {
 	    	}
 	    	cameras = [];
 	    	pointcloud = [];
+	    	pointcloud_num = 0;
 	    	// s.end();
 
 	    	state = 10;

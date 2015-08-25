@@ -174,6 +174,7 @@ function run_sfm(options) {
 	       				if (j && j.file_name && j.file_name !== jpg_needs_camera.file_name) { // if not same jpg as before
 	       					if (j.used > 2 
 		       					&& j.model_index.mod_idx in models 
+		       					&& models[j.model_index.mod_idx].pointcloud_num > 0
 		       				    && j.model_index.cam_idx in models[j.model_index.mod_idx].cameras) { 
 	       				    	// check distance to other cameras
 	       						var cam = models[j.model_index.mod_idx].cameras[j.model_index.cam_idx];
