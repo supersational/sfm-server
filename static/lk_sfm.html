@@ -375,7 +375,7 @@
             fs.requestAnimationFrame(animate);
             fps_three++;
 
-            if (model.children.length>0) {
+            if (model.children.length>0 && 0) {
                 raycaster.setFromCamera( mouse, camera );   
 
                 // calculate objects intersecting the picking ray
@@ -392,7 +392,7 @@
 
             // generate a list of points to minimize distance between
             var ptsfrom = [];
-            var i = point_id.length-1, j = points_3d.length-1;
+            var i = point_count-1, j = points_3d.length-1;
             console.log(point_id, points_3d);
             console.log(i, j);
             if (i!=0 && j!=0) while(i+1 && j+1) {
@@ -403,15 +403,16 @@
                 else if (id1 < id2) j--;
                 else if (id1 == id2) {
                     ptsfrom.push({
-                        x:points_3d[j].x , y:points_3d[j].y , z:points_3d[j].z,
+                        x:points_3d[j].pos.x , y:points_3d[j].pos.y , z:points_3d[j].pos.z,
                         x1: (curr_xy[i<<1]   * scale_w + size.offsetW) / (0.5*window.innerWidth) - 1, // transform to coordinates of camera.project(xyz) to save cpu
-                        y1: -(curr_xy[i<<1+1] * scale_h + size.offsetH) / (0.5*window.innerHeight) + 1,
+                        y1: -(curr_xy[(i<<1)+1] * scale_h + size.offsetH) / (0.5*window.innerHeight) + 1,
                         e:0,use:true
                     }); 
                     i--; 
                     j--;
                 }
             }
+            console.log(ptsfrom);
 
             var bestfoundcam = camera.clone();
             var initial_error = bundle_error(bestfoundcam, ptsfrom, true);
@@ -420,15 +421,17 @@
             var sc_p = 1; // position movement multiplier
             var num_f = 0; // number of f() evaluations
             var testcams = []; // all f camera pos's
-            var f = function(v) {
+            var make_camera = function(a,b,c,d,e,f) {
                 var testcam = camera.clone();
-                
-                testcam.quaternion.multiply( new THREE.Quaternion().setFromEuler(new THREE.Euler(v[0], v[1], v[2], 'XYZ')) );
+                testcam.quaternion.multiply( new THREE.Quaternion().setFromEuler(new THREE.Euler(a,b,c, 'XYZ')) );
+                testcam.position.add(new THREE.Vector3(d*sc_p,e*sc_p,f*sc_p));//.add(offset);
+                testcam.updateMatrixWorld(true);
+                return testcam;
+            }
 
-                testcam.position.add(new THREE.Vector3(v[3]*sc_p,v[4]*sc_p,v[5]*sc_p));//.add(offset);
+            var f = function(v) {
+                var testcam = make_camera(v[0], v[1], v[2], v[3],v[4],v[5]);
                 testcam.i = num_f;
-                //console.log(testcam.quaternion);
-                //console.log(testcam.position);
                 var err = bundle_error(testcam,ptsfrom,true);
                 testcam.err = err;
                 num_f++;
@@ -436,16 +439,22 @@
                 return err; 
             }
 
-            
-            console.log(ptsfrom);
-
             var starting_guess = [0,0,0,0,0,0];
             var solution = numeric.uncmin(f,starting_guess,1e-8,undefined,undefined,undefined /*cb*/);
 
+            var v = solution.solution;
+            var final_cam = make_camera(v[0], v[1], v[2], v[3],v[4],v[5]);
+            console.log(v);
+            var final_err = bundle_error(final_cam,ptsfrom,true);
+            console.log("final_err = " + final_err);
+
+            // copy the final camera
+            camera.quaternion.copy(final_cam.quaternion);
+            camera.position.copy(final_cam.position);
+            camera.updateMatrixWorld(true);
         }
 
         function bundle_error(cam, pts, dontremove) {
-            cam.updateMatrixWorld(true);
             var error = 0;
             var num_pts = 0;
             var max_error=0;
@@ -453,7 +462,7 @@
             for (var i=0; i < pts.length; i++) {
                 var p = new THREE.Vector3(pts[i].x,pts[i].y,pts[i].z);
                 var v = p.project(cam); // get 2d screen points
-                if (bundle_verbose && i==0) console.log(v);
+                //if (bundle_verbose && i==0) console.log(v);
                 var e = Math.pow(v.x-pts[i].x1,2) + Math.pow(v.y-pts[i].y1,2);
                 pts[i].e += e;
                 if (!pts[i].use) continue;

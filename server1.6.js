@@ -464,7 +464,7 @@ app.post('/dataURL', function(req,res) {
 	        	new_file(name);
 	        	var jpg = jpgs_lookup[name];
 	        	jpg.skipsfm = true;
-	        	jpg.recentNum = 3;
+	        	jpg.recentNum = 1;
 	        };
 
 	        fs.writeFile('uploads/' + name, imageBuffer.data, function(err) {console.log(err);}, callback);
