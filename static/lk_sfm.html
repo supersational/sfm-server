@@ -417,7 +417,7 @@
                                 intersect_pos.divideScalar(numGood);
                                 points_3d.push({id:point_id[i],pos:model.children[0].geometry.vertices[intersections[0].index]});//intersect_pos});
                             }
-                            console.log(intersect_pos);
+                            //console.log(intersect_pos);
 
                         } 
                         var minDist = 50;
@@ -433,8 +433,8 @@
                     }
                 } 
             }
-            console.log(points_3d)
-            points_3d.forEach(function(e){console.log(e.pos)});
+            //console.log(points_3d)
+            //points_3d.forEach(function(e){console.log(e.pos)});
             model.children[0].geometry.colorsNeedUpdate = true;
         }
 
@@ -443,14 +443,22 @@
             var x1, y1, x2, y2, v = new THREE.Vector3();
             var numDrawn = 0;
 
-            var threeToCanvasScale = {
-                w: 0.5*size.w*(1-size.offsetW*2/window.innerWidth ),
-                h: 0.5*size.h*(1-size.offsetH*2/window.innerHeight)
+            // var ray_scale = {
+            //     w: 0.5*size.w*(size.w/window.innerWidth ),
+            //     h: 0.5*size.h*(size.h/window.innerHeight)
+            // };
+            // ray_scale.offset_w = (window.innerWidth-ray_scale.w)/2;//  size.offsetW+size.w*size.offsetW*2/window.innerWidth,
+            // ray_scale.offset_h = (window.innerHeight-ray_scale.h)/2;//size.offsetH+size.h*size.offsetH*2/window.innerHeight,
+            var ray_scale = {
+                w: 0.5*window.innerWidth,
+                h: 0.5*window.innerHeight,
+                offset_w:0,
+                offset_h:0
             };
             for(var i = 0; i < points_3d.length; i++) {
                 while (1) {
-                    if ( j>=point_count || point_id[j] == points_3d[i].id) break;
-                    if (point_id[j]>points_3d[i].id) {j=9999; break;}
+                    if ( j >= point_count || point_id[j] == points_3d[i].id) break;
+                    if ( point_id[j] > points_3d[i].id ) { j=9999; break; }
                     j++;
                 }
                 if ((j>=point_count)) {
@@ -465,10 +473,10 @@
                 v.project(camera);
                 // x2 = ((v.x+1)*0.5)*(size.w)+size.offsetW;
                 // y2 = ((-v.y+1)*0.5)*(size.h)+size.offsetH;
-                x2 = (v.x+1)*threeToCanvasScale.w+size.offsetW;
-                y2 = (-v.y+1)*threeToCanvasScale.h+size.offsetH;
+                x2 = (v.x+1)*ray_scale.w+ray_scale.offset_w;
+                y2 = (-v.y+1)*ray_scale.h+ray_scale.offset_h;
 
-                ctx.strokeStyle = lev_colors_rgb[point_id[j]%6];
+                ctx.strokeStyle = lev_colors[point_id[j]%6];
                 ctx.beginPath();
                 ctx.moveTo(x1,y1);
                 ctx.lineTo(x2,y2);
