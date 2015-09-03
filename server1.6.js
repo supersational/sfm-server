@@ -209,7 +209,7 @@ function run_sfm(options) {
 	       				}
 	       				i++;
 	       			}
-	       			console.log("finished search with " + good_cameras.length + " good_cameras and "+ bad_cameras.length + " bad_cameras");
+	       			console.log("finished search with " + good_cameras.length + " good_cameras and "+ bad_cameras.length + " bad_cameras out of " + jpgs.length);
 	       			var numAdded = 0;
 			        var contents = "";
 			        good_cameras.forEach(function(c) {
@@ -267,12 +267,14 @@ function run_sfm(options) {
 		var lines = strout.split('\n');
 		var i = 0;
 		//console.log("length " + lines.length)
+		var pauseConsole = false;
 		while (i<lines.length) {
 			var l = lines[i].toLowerCase();
-
+			if (pauseConsole) {if (l.indexOf("# images loaded")>-1) pauseConsole = false;}
+			else if (l.indexOf("image_size")>-1) pauseConsole = true;
 			if(logAllData || l.indexOf("finished")>-1 || l.indexOf("model(s)")>-1|| l.indexOf("load ")>-1 || l.indexOf("enter to continue")>-1 || l.indexOf("error")>-1){
 				lines[i].replace(/\r?\n|\r/,"")
-				console.log("SFM: " + lines[i]);
+				if (!pauseConsole) console.log("SFM: " + lines[i]);
 			}
 			i++;
 		}

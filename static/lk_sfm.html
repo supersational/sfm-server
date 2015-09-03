@@ -46,7 +46,7 @@
             URL_params.maxWidth = 640;
         }
 
-
+        // vARS FOR DISPLAYING VIDEO FEED
         var fs = fullscreen_compatibility;
         var size, container, canvas, ctx,  s_canvas, s_ctx, video, info;
         fs.createVideoCanvas({camera_direction:"environment", sc:URL_params.sc, maxWidth: URL_params.maxWidth, 
@@ -65,26 +65,49 @@
                 console.log("fs initialized... size:");
                 console.log(size);
                 init();
+
             }
 
         });
 
+        // UTIL VARS
         var lev_colors;
         var lev_colors_rgb;
         var fps = 0;
         var fps_three = 0;
+
+        // THREE JS VARS
         var scene, camera, renderer;
-        var arrows, model, raycaster;
+        var arrows, model, raycaster, raycaster_default_threshold;
 
         var mouse = new THREE.Vector2();
 
         var cameras = []; // from parser.js
 
+        // TICK VARS (EVERY FRAME)
+        var auto_bundle = false;
+        var server_refreshrate = 20 * 1000; // 20s
+        var server_refreshevent = false;
+        var server_autorefresh = false;
+        function server_refresh() {
+            if (server_autorefresh && !server_refreshevent) {
+
+                server_refreshevent = true;
+                setTimeout(function() {
+                    if (server_autorefresh) {
+                        takeScreenShot();
+                        server_refreshevent = false;
+                        //server_refresh();
+                    }
+
+                }, server_refreshrate);
+
+            }
+        }
+
         function onMouseMove( event ) {
 
             // calculate mouse position in normalized device coordinates
-            // (-1 to +1) for both components
-
             mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
             mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;     
 
@@ -105,6 +128,7 @@
             container.appendChild( btn );
             btn.addEventListener( "click" , 
                 function() {
+
                     console.log("starting with " + point_count + " points : ");
                     train_pattern();
                     print_pointlist();
@@ -122,7 +146,7 @@
                     }
                     console.log("total point count: " + point_count);
                     print_pointlist();
-                    raycast_points(true);
+                    if (model.children.length) raycast_points(true);
                 }
             );
             setInterval( function () {
@@ -150,6 +174,22 @@
             btn4.style.cssText = 'position:absolute;margin-left:10px;margin-top:' + (btn_top + 3 * btn_spacing) + 'px;padding:' + btn_padding + 'px;z-index:10;';
             container.appendChild( btn4 );
             btn4.addEventListener( "click" , function () {getNVM()} );
+
+            var btn5 = document.createElement( 'button');
+            btn5.innerHTML = "EDIT"; // take a screenshot & send to server
+            btn5.style.cssText = 'position:absolute;margin-left:10px;margin-top:' + (btn_top + 4 * btn_spacing) + 'px;padding:' + btn_padding + 'px;z-index:10;';
+            container.appendChild( btn5 );
+            btn5.addEventListener( "click" , function() {
+                if (controls.enabled) {
+                    controls.enabled = false;
+                    renderer.domElement.addEventListener( 'mousedown', mouseDownCreateObject, false );
+                    btn5.innerHTML = "STOP EDITING";
+                } else {
+                    renderer.domElement.removeEventListener( 'mousedown', mouseDownCreateObject, false );
+                    controls.enabled = true;
+                    btn5.innerHTML = "EDIT";
+                }
+            });
 
             info = document.createElement( 'p' );
             info.style.cssText = 'position:absolute;margin-left:80px;margin-top:10px;z-index:11;width:100px';
@@ -212,6 +252,7 @@
             camera.lookAt(scene.position);
 
             raycaster = new THREE.Raycaster();
+            raycaster.params.PointCloud.threshold = raycaster_default_threshold = 9;
 
 
             // RENDERER
@@ -328,17 +369,65 @@
                 raycaster.params.PointCloud.threshold++;
                 console.log("new raycaster threshold = " + raycaster.params.PointCloud.threshold);
             }  else if (e.which == 66 || e.which == 98)  { // B
-                bundle_adjustment();
+                auto_bundle = !auto_bundle;
             }  else if (e.which == 83 || e.which == 115)  { // S 
                 raycast_points(true)
             }  else if (e.which == 116 || e.which == 84)  { // T
                 raycast_points();
                 
+            }  else if (e.which == 101)  { // E
+                if (controls.enabled) {
+                    controls.enabled = false;
+                    renderer.domElement.addEventListener( 'mousedown', mouseDownCreateObject, false );
+                } else {
+                    renderer.domElement.removeEventListener( 'mousedown', mouseDownCreateObject, false );
+                    controls.enabled = true;
+                }
             } else {
                 console.log(e.which + " pressed");
             }
         });
 
+
+        function mouseDownCreateObject() {
+            if (model.children.length > 0 ) {
+                raycaster.setFromCamera( mouse, camera );   
+                var intersections = raycaster.intersectObjects( model.children);
+
+                var intersect_pos = new THREE.Vector3(0,0,0);
+                var numGood = 0;
+                intersections.forEach(function(intersection, idx) {
+                    intersect_pos.add(intersection.point);
+                    numGood++;
+                });
+                if (numGood>0) {
+                    intersect_pos.divideScalar(numGood);
+                    var geometry = new THREE.SphereGeometry( Math.random()* 5, 32, 32 );
+                    var material = new THREE.MeshBasicMaterial( {color: Math.random()*0xFFFFFF<<0} );
+                    var sphere = new THREE.Mesh( geometry, material );
+                    sphere.position.copy(intersect_pos);
+                    scene.add( sphere );
+
+                    if (Math.random() > 0.5) {
+                        // var msgs = 'hi/label here/text/a very long description/1/2/3/4/5/info'.split('/')
+                        // var msg = msgs[Math.floor(Math.random()*msgs.length)];
+                        // var spritey = new THREE.TextGeometry(msg)
+                        // makeTextSprite( " " + msg + " ", { fontsize: 32, backgroundColor: {r:255, g:100, b:100, a:1} } );
+                        var s = 100;
+                        var geometry = new THREE.SphereGeometry( Math.random()* 5, 32, 32 );
+                        var sphere2 = new THREE.Mesh( geometry, material );
+                        sphere2.position.copy(intersect_pos).add(new THREE.Vector3(Math.random() * s,Math.random() * s,Math.random() * s));
+                        scene.add( sphere2 );
+                    }   
+                } else {
+                    console.log("didn't click on anything")
+                }
+                console.log(intersect_pos);
+
+            } else {
+                console.log("no pointcloud, no adding!");
+            }
+        }
         function tick() {
             if (video.readyState === video.HAVE_ENOUGH_DATA) {
                 fps++;
@@ -373,6 +462,8 @@
                 }
                 
                 draw_lines();
+
+                if (auto_bundle) bundle_adjustment();
             }
             fs.requestAnimationFrame(tick);
 
@@ -382,17 +473,6 @@
         function animate() {
             fs.requestAnimationFrame(animate);
             fps_three++;
-
-            if (model.children.length>0 && 0) {
-                raycaster.setFromCamera( mouse, camera );   
-
-                // calculate objects intersecting the picking ray
-                var intersections = raycaster.intersectObject( model.children[0]);
-
-                if ( intersections.length  > 0 ) console.log(intersections);
-                
-            }
-
             renderer.render(scene, camera);
         }
 
@@ -425,7 +505,7 @@
             var bestfoundcam = camera.clone();
             var initial_error = bundle_error(bestfoundcam, ptsfrom, true);
             if (verbose) console.log("beginning error : "  + initial_error);
-            if (isNaN(initial_error)) {console.log("error is NaN so aborting using " + point_count + " points and " + points_3d.length + " Vector3's" )}
+            if (isNaN(initial_error)) {console.log("error is NaN so aborting using " + point_count + " points and " + points_3d.length + " Vector3's" ); auto_bundle=false; return;}
             var sc_p = 1; // position movement multiplier
             var num_f = 0; // number of f() evaluations
             var testcams = []; // all f camera pos's
@@ -440,7 +520,7 @@
             var f = function(v) {
                 var testcam = make_camera(v[0], v[1], v[2], v[3],v[4],v[5]);
                 testcam.i = num_f;
-                var err = bundle_error(testcam,ptsfrom,true);
+                var err = bundle_error(testcam,ptsfrom,false);
                 testcam.err = err;
                 num_f++;
                 testcams.push(testcam); 
@@ -883,7 +963,8 @@
                         } else {
                             console.log("getJPG failed " + res);
                         }
-
+                        server_autorefresh = true; 
+                        server_refresh();
                     }
                 }
             }
@@ -893,7 +974,6 @@
             xmlhttp.send();
         }
 
-        
         </script>
     </body>
 </html>
