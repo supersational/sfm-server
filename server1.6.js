@@ -107,6 +107,7 @@ function set_models(new_models, options) {
 	models = new_models;
 	console.log("importing new model list (" + models.length + " models)");
 	for (var mod_idx=0; mod_idx<models.length; mod_idx++) {
+		console.log("woo a model with " + models[mod_idx].pointcloud_num + " points in pointcloud");
 		var camList = models[mod_idx].cameras;
 		for( var cam_idx = 0; cam_idx < camList.length ; cam_idx++) {
 			//console.log(camList[cam_idx]);
@@ -169,6 +170,8 @@ function run_sfm(options) {
 			        var good_cameras=[];
 			        var bad_cameras =[];
 			        var i = 0;
+			        console.log("models have: ");
+			        models.forEach(function(model) {console.log(model.pointcloud_num);})
 	       			while ((good_cameras.length<jpg_needs_camera.recentNum) && i <= jpgs.length-1) { // find most recent cameras
 	       				var j = jpgs[jpgs.length-1-i]; // get most recent jpg 
 	       				if (j && j.file_name && j.file_name !== jpg_needs_camera.file_name) { // if not same jpg as before
@@ -195,7 +198,12 @@ function run_sfm(options) {
 	       							bad_cameras.push(cam);
 	       						}
 	       					} else {
-	       						console.log("camera wasn't used in the model so not even adding to 'bad cameras'")
+	       						var msg = "camera didn't have ";
+	       						if (!(j.used > 2)) {msg+="used > 2";} 
+	       						else if (!(j.model_index.mod_idx in models)) {msg+="j.model_index.mod_idx in models";} 
+	       						else if (!(models[j.model_index.mod_idx].pointcloud_num > 0)) {msg+="models[j.model_index.mod_idx].pointcloud_num > 0";} 
+	       						else if (!(j.model_index.cam_idx in models[j.model_index.mod_idx].cameras)) {msg+="j.model_index.cam_idx in models[j.model_index.mod_idx].cameras)";} 
+	       						console.log( msg + " so not even adding to 'bad cameras'")
 	       						console.log(JSON.stringify(j));
 	       					}
 	       				}
@@ -304,7 +312,7 @@ function run_sfm(options) {
 
 app.get('/',function(req,res){
 	console.log("index.html");
-    res.sendFile(__dirname + "/static/index.html");
+	res.redirect('/static/lk_sfm.html');
 });
 
 app.get('/latestNVM.nvm',function(req,res){

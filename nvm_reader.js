@@ -216,8 +216,11 @@ function read (options) {
 		   			//console.log(cam.file_name + " = " + (models.length-1));
 		   			camera_dict[cam.file_name] = models[models.length - 1];
 		   		}
+		   		if (pointcloud.length > 0) {models[models.length-1].pointcloud_num = pointcloud.length;}
+		   		else {models[models.length-1].pointcloud_num = pointcloud_num;}
 		   		cameras = [];
 		   		pointcloud = [];
+		   		pointcloud_num = 0;
 		   		state=-1;
 
 

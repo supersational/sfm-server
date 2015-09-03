@@ -41,7 +41,7 @@ function readFile(file, camera_name) {
                 var file_name = cam[0];
                 var col = rainbow.colourAt(cameras.length);
                 //console.log("file_name = " + file_name + ", camera_name = " + camera_name);
-                if (file_name == camera_name) {
+                if (camera_name !== undefined && file_name == camera_name) {
                     console.log("setting camera : " + camera_name)
                     setCamera(newCam);
                     latestCamera = newCam;

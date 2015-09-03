@@ -126,8 +126,10 @@
                 }
             );
             setInterval( function () {
-                if (point_count > 0) btn.innerHTML = "FAST (" + point_count + ")";
-                else  btn.innerHTML = "FAST";
+                if (point_count > 0) {
+                    if (points_3d.length>0) btn.innerHTML = "FAST (" + point_count + ", " + points_3d.length + ")";
+                    else btn.innerHTML = "FAST (" + point_count + ")";
+                } else  btn.innerHTML = "FAST";
             }, 250);
 
 
@@ -142,6 +144,12 @@
             btn3.style.cssText = 'position:absolute;margin-left:10px;margin-top:' + (btn_top + 2 * btn_spacing) + 'px;padding:' + btn_padding + 'px;z-index:10;';
             container.appendChild( btn3 );
             btn3.addEventListener( "click" ,takeScreenShot );
+
+            var btn4 = document.createElement( 'button');
+            btn4.innerHTML = "LOAD"; // take a screenshot & send to server
+            btn4.style.cssText = 'position:absolute;margin-left:10px;margin-top:' + (btn_top + 3 * btn_spacing) + 'px;padding:' + btn_padding + 'px;z-index:10;';
+            container.appendChild( btn4 );
+            btn4.addEventListener( "click" , function () {getNVM()} );
 
             info = document.createElement( 'p' );
             info.style.cssText = 'position:absolute;margin-left:80px;margin-top:10px;z-index:11;width:100px';
@@ -316,14 +324,14 @@
                     console.log("no latestCamera");
                     if (cameras.length>0) setCamera(cameras[cameras.length-1]);
                 }
-            } else if (e.which == 114 || e.which == 82)  {
+            } else if (e.which == 114 || e.which == 82)  { // R
                 raycaster.params.PointCloud.threshold++;
                 console.log("new raycaster threshold = " + raycaster.params.PointCloud.threshold);
-            }  else if (e.which == 66 || e.which == 98)  {
+            }  else if (e.which == 66 || e.which == 98)  { // B
                 bundle_adjustment();
-            }  else if (e.which == 83 || e.which == 115)  {
+            }  else if (e.which == 83 || e.which == 115)  { // S 
                 raycast_points(true)
-            }  else if (e.which == 116 || e.which == 84)  {
+            }  else if (e.which == 116 || e.which == 84)  { // T
                 raycast_points();
                 
             } else {
@@ -388,17 +396,17 @@
             renderer.render(scene, camera);
         }
 
-        function bundle_adjustment() {
+        function bundle_adjustment(verbose) {
 
             // generate a list of points to minimize distance between
             var ptsfrom = [];
             var i = point_count-1, j = points_3d.length-1;
-            console.log(point_id, points_3d);
-            console.log(i, j);
+            if (verbose) console.log(point_id, points_3d);
+            if (verbose) console.log(i, j);
             if (i!=0 && j!=0) while(i+1 && j+1) {
                 var id1 = point_id[i];
                 var id2 = points_3d[j].id;
-                console.log(id1, id2, i, j);
+                if (verbose) console.log(id1, id2, i, j);
                 if (id1 > id2) i--;
                 else if (id1 < id2) j--;
                 else if (id1 == id2) {
@@ -412,12 +420,12 @@
                     j--;
                 }
             }
-            console.log(ptsfrom);
+            if (verbose) console.log(ptsfrom);
 
             var bestfoundcam = camera.clone();
             var initial_error = bundle_error(bestfoundcam, ptsfrom, true);
-            console.log("beginning error : "  + initial_error);
-
+            if (verbose) console.log("beginning error : "  + initial_error);
+            if (isNaN(initial_error)) {console.log("error is NaN so aborting using " + point_count + " points and " + points_3d.length + " Vector3's" )}
             var sc_p = 1; // position movement multiplier
             var num_f = 0; // number of f() evaluations
             var testcams = []; // all f camera pos's
@@ -444,9 +452,9 @@
 
             var v = solution.solution;
             var final_cam = make_camera(v[0], v[1], v[2], v[3],v[4],v[5]);
-            console.log(v);
+            if (verbose) console.log(v);
             var final_err = bundle_error(final_cam,ptsfrom,true);
-            console.log("final_err = " + final_err);
+            if (verbose) console.log("final_err = " + final_err);
 
             // copy the final camera
             camera.quaternion.copy(final_cam.quaternion);
@@ -516,7 +524,7 @@
                             });
                             if (numGood>0) {
                                 intersect_pos.divideScalar(numGood);
-                                points_3d.push({id:point_id[i],pos:model.children[0].geometry.vertices[intersections[0].index]});//intersect_pos});
+                                points_3d.push({id:point_id[i],pos:intersect_pos});//model.children[0].geometry.vertices[intersections[0].index]});//intersect_pos});
                             }
                             //console.log(intersect_pos);
 
@@ -576,7 +584,7 @@
                 ctx.lineTo(x2,y2);
                 ctx.stroke();
             }
-            if (numDrawn>0) console.log("numDrawn" + numDrawn);
+            if (numDrawn>0 && 0) console.log("numDrawn" + numDrawn);
         }
 
 
@@ -820,7 +828,7 @@
         function getNVM(name, camera_name) {
             if (window.XMLHttpRequest) {
                 xmlhttp = new XMLHttpRequest();
-            }
+            } else {console.log("XMLHttpRequest ERROR"); return;}
             var ready = function(name, camera_name) {
                 console.log("getNVM, function,  name = " + name + ", camera_name = " + camera_name)
 
